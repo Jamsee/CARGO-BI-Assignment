@@ -1,0 +1,128 @@
+﻿@using Dapper;
+@using Npgsql;
+@using System.Data;
+@using CARGO_B_IAssignment.Models;
+
+
+@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<h1>FindUser hvor id'et er 550e8400-e29b-41d4-a716-446655440000 </h1>
+
+
+@if (TheUser == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class='table'>
+        <thead>
+            <tr>
+                <th>UserName</th>
+                <th>email</th>
+                <th>Addresses</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in TheUser)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>@user.Email</td>
+                    <td>@user.Address</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+
+
+
+<h1>Finder alle brugerne som har et A i sit navn </h1>
+
+@if (usernamesWithAs == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class='table'>
+        <thead>
+            <tr>
+                <th>UserName</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in usernamesWithAs)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code
+{
+
+    private List<User> TheUser = new List<User>();
+    public async Task FindUser()
+    {
+
+
+        var connstring = "UserID=bqqazwmj;Password=3hQhoxDQLwMweg3ca-Oby6vt5typAPpI;HOST=cornelius.db.elephantsql.com;PORT=5432;Database=bqqazwmj";
+        var sql = @"SELECT Usernames.username, Emails.email, Addresses.address
+                  FROM Usernames
+                  JOIN emails ON Usernames.user_id = Emails.user_id
+                  JOIN Addresses ON Usernames.user_id = Addresses.user_id
+                  WHERE Usernames.user_id = '550e8400-e29b-41d4-a716-446655440000';";//DeN user det vi leder efter
+        {
+            using (var connection = new NpgsqlConnection(connstring))
+            {
+                var usernames = await connection.QueryAsync<User>(sql);
+
+                foreach (var user in usernames)
+                {
+                    var UserName = user.UserName;
+                    var email = user.Email;
+                    var Addresses = user.Address;
+                    var bruger = new User { UserName = UserName, Email = email, Address = Addresses };
+                    TheUser.Add(bruger);
+                }
+            }
+        }
+    }
+    private List<User> usernamesWithAs = new List<User>();
+
+    public async Task GetUserNames()
+    {
+
+        var connstring = "UserID=bqqazwmj;Password=3hQhoxDQLwMweg3ca-Oby6vt5typAPpI;HOST=cornelius.db.elephantsql.com;PORT=5432;Database=bqqazwmj";
+        var sql = @"SELECT username FROM Usernames WHERE LOWER(username) LIKE '%a%';";
+
+        using (var connection = new NpgsqlConnection(connstring))
+        {
+            var Usernames = await connection.QueryAsync<User>(sql);
+
+            foreach (var users in Usernames)
+            {
+                var username = users.UserName;
+
+                var bruger = new User { UserName = username };
+                usernamesWithAs.Add(bruger);
+            }
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FindUser();
+        await GetUserNames();
+    }
+}
